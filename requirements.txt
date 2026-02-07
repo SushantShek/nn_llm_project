@@ -1,0 +1,13 @@
+requests~=2.32.5
+requests-cache~=1.2.1
+python-dotenv~=1.2.1
+pydantic~=2.12.4
+langchain~=1.0.7
+huggingface-hub~=0.36.0
+pytest~=9.0.1
+tqdm
+tenacity~=9.1.2
+
+langchain-community~=0.4.1
+langchain-core~=1.0.5
+urllib3~=2.5.0

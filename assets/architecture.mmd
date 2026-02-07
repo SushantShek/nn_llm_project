@@ -1,0 +1,15 @@
+%%{init: {"theme": "default"}}%%
+flowchart LR
+  A[RandomUser API] --> B[API Client (requests + cache)]
+  B --> C[Processor (filter/format)]
+  C --> D[LLM Identification (LangChain/HuggingFaceHub)]
+  D --> E[Agentic Enhancer (LangChain Agent)]
+  E --> F[Outputs / Console or persistence]
+  subgraph infra
+    D --> G[HuggingFace Hub or Local LLM]
+    E --> G
+  end
+  subgraph perf
+    B -->|requests-cache| B
+    D -->|ThreadPool| D
+  end
