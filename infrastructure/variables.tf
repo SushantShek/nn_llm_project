@@ -12,5 +12,5 @@ variable "cluster_name" {
 variable "github_repo" {
   description = "The GitHub repository in the format 'username/repo'"
   type        = string
-  default     = "sushant/person-finder"
+  default     = "sushant/nn_llm_project"
 }
