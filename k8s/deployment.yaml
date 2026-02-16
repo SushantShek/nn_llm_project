@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: person-finder
+  namespace: person-finder
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: person-finder
+  template:
+    metadata:
+      labels:
+        app: person-finder
+    spec:
+      containers:
+        - name: person-finder
+          image: <YOUR_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/person-finder:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openai-secret
+                  key: API_KEY
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: nn-config
+                  key: LOG_LEVEL
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
