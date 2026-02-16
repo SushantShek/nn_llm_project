@@ -35,10 +35,10 @@ jobs:
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          ECR_REGISTRY: 897253278116.dkr.ecr.eu-north-1.amazonaws.com
+          ECR_REPOSITORY: person-finder
           IMAGE_TAG: ${{ github.sha }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_REGION: eu-north-1
         run: |
           # Debug output
           echo "ECR_REGISTRY from login: '$ECR_REGISTRY'"
