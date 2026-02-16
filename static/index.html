@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Person Finder</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="glass-container">
+        <header>
+            <h1>AI Person Finder</h1>
+            <p>Discover influential leaders from Forbes, Time, and Gartner</p>
+        </header>
+
+        <main>
+            <div class="controls">
+                <button id="findBtn" class="primary-btn">
+                    <span class="btn-text">FIND PEOPLE</span>
+                    <span class="loader hidden"></span>
+                </button>
+            </div>
+
+            <div id="resultsContainer" class="hidden">
+                <div class="table-wrapper">
+                    <table id="resultsTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Unique Ability</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody">
+                            <!-- Results will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 AI Person Finder. Powered by LLM Analysis.</p>
+        </footer>
+    </div>
+
+    <script>
+        const findBtn = document.getElementById('findBtn');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultsBody = document.getElementById('resultsBody');
+        const loader = findBtn.querySelector('.loader');
+        const btnText = findBtn.querySelector('.btn-text');
+
+        findBtn.addEventListener('click', async () => {
+            // UI State: Loading
+            findBtn.disabled = true;
+            loader.classList.remove('hidden');
+            btnText.textContent = 'ANALYZING...';
+            resultsContainer.classList.add('hidden');
+            resultsBody.innerHTML = '';
+
+            try {
+                const response = await fetch('/find');
+                if (!response.ok) throw new Error('API request failed');
+                
+                const data = await response.json();
+                
+                // Inject results
+                data.results.forEach(person => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="name-cell">${person.name}</td>
+                        <td class="desc-cell">${person.description}</td>
+                        <td class="ability-cell"><span class="badge">${person.unique_ability}</span></td>
+                    `;
+                    resultsBody.appendChild(row);
+                });
+
+                resultsContainer.classList.remove('hidden');
+            } catch (error) {
+                alert('Oops! Something went wrong: ' + error.message);
+            } finally {
+                // UI State: Reset
+                findBtn.disabled = false;
+                loader.classList.add('hidden');
+                btnText.textContent = 'FIND PEOPLE';
+            }
+        });
+    </script>
+</body>
+</html>

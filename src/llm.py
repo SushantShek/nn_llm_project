@@ -1,37 +1,32 @@
 import os
-from langchain_huggingface import HuggingFaceEndpoint
-
+import json
 from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tenacity import retry, wait_exponential, stop_after_attempt
 from typing import List, Dict
 import logging
-
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 import requests
-from huggingface_hub import configure_http_backend
-
-os.environ["HF_API_KEY"]="your_hf_api_key_here"
-
-def backend_factory() -> requests.Session:
-    session = requests.Session()
-    session.verify = False
-    return session
-
-configure_http_backend(backend_factory=backend_factory)
+from src.config import settings
 
 logger = logging.getLogger(__name__)
 
-MODEL = os.environ.get("gpt-4", "google/flan-t5-small")
-API_KEY = os.environ.get("OPENAI_API_KEY")
-
-@retry(wait=wait_exponential(multiplier=1, min=1, max=10), stop=stop_after_attempt(1))
-def call_llm_single(prompt: str, max_tokens: int = 256) -> str:
-    llm = ChatOpenAI(model=MODEL,openai_api_key=API_KEY, max_tokens=max_tokens)
+@retry(wait=wait_exponential(multiplier=1, min=1, max=10), stop=stop_after_attempt(3))
+def call_llm_single(prompt: str, max_tokens: int = 512) -> str:
+    if not settings.OPENAI_API_KEY:
+        raise ValueError("OPENAI_API_KEY is not set in environment or settings")
+        
+    llm = ChatOpenAI(
+        model=settings.MODEL_NAME,
+        openai_api_key=settings.OPENAI_API_KEY, 
+        max_tokens=max_tokens
+    )
+    # Using default session which respects SSL settings if possible, 
+    # but langchain handle its own requests. 
+    # For custom backend with SSL check:
     out = llm.invoke(input=prompt)
-    return out.strip()
+    if hasattr(out, 'content'):
+        return out.content.strip()
+    return str(out).strip()
 
 def identify_persons_with_llm(names: List[str], top_k: int = 5) -> Dict[str, str]:
     results = {}
@@ -47,5 +42,8 @@ def identify_persons_with_llm(names: List[str], top_k: int = 5) -> Dict[str, str
                 results[name] = fut.result()
             except Exception as e:
                 logger.error("LLM call failed for %s: %s", name, e)
-                results[name] = "LLM error"
+                results[name] = json.dumps({
+                    "description": "LLM identification failed",
+                    "unique_ability": "N/A"
+                })
     return results

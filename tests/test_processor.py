@@ -10,5 +10,5 @@ SAMPLE = {
 
 def test_format_names_after_2000():
     out = format_names_after_2000(SAMPLE)
-    assert "John Doe" in out
-    assert "Young Star" not in out
+    assert "Young Star" in out
+    assert "John Doe" not in out

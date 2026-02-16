@@ -1,21 +1,39 @@
-FROM python:3.10-slim
+# Stage 1: Build
+FROM python:3.10-slim as builder
 
-# Set workdir
 WORKDIR /app
 
-# Install system deps for building wheels if needed
-RUN apt-get update && apt-get install -y --no-install-recommends build-essential gcc && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential gcc && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install
 COPY requirements.txt .
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN pip install --user --no-cache-dir -r requirements.txt
 
-# Copy project
-COPY . .
+# Stage 2: Final
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Install curl for healthcheck
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
 
 # Non-root user
 RUN useradd --create-home appuser
 USER appuser
-ENV PATH=/home/appuser/.local/bin:$PATH
 
-CMD ["python", "-m", "src.main"]
+# Copy only installed packages and application code
+COPY --from=builder /root/.local /home/appuser/.local
+COPY . .
+
+ENV PATH=/home/appuser/.local/bin:$PATH
+ENV PYTHONUNBUFFERED=1
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=3s \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+CMD ["python", "-m", uvicorn, "src.api:app", "--host", "0.0.0.0", "--port", "8000"]

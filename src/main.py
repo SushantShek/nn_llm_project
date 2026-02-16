@@ -1,26 +1,25 @@
 import logging
-from src.api_client import fetch_random_users
-from src.processor import format_names_after_2000
+from src.curated_data import get_random_curated_names
 from src.llm import identify_persons_with_llm
 from src.agent import get_best_work_for_names
-import os
-from dotenv import load_dotenv
+from src.config import settings
 from pprint import pprint
 
-load_dotenv()
-logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
+logging.basicConfig(level=settings.LOG_LEVEL)
 
 def main():
-    raw = fetch_random_users(results=20)
-    names = format_names_after_2000(raw)
-    print("Filtered names:")
-    pprint(names)
+    # Pull 25 names from Forbes, Time, and Gartner
+    names = get_random_curated_names(count=25)
+    print(f"Data Source: Curated (Forbes, Time, Gartner)")
+    print(f"Selected {len(names)} names. Showing first 10:")
+    pprint(names[:10])
 
-    llm_identifications = identify_persons_with_llm(names, top_k=5)
-    print("\nLLM identifications:")
+    # Process a subset with LLM (top 10 for efficiency)
+    llm_identifications = identify_persons_with_llm(names, top_k=10)
+    print("\nLLM identifications (top 10):")
     pprint(llm_identifications)
 
-    best_work = get_best_work_for_names(list(llm_identifications.keys()), limit=5)
+    best_work = get_best_work_for_names(list(llm_identifications.keys()), limit=10)
     print("\nBest work suggestions:")
     pprint(best_work)
 

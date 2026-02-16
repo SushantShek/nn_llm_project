@@ -18,12 +18,15 @@ def parse_person(raw: Dict) -> Person:
 def format_names_after_2000(data: Dict) -> List[str]:
     results = data.get("results", [])
     people = []
+    logger.debug("Processing %d results", len(results))
     for raw in results:
         try:
             p = parse_person(raw)
-            if p.dob_date.year <= 2000:
+            logger.debug("Parsed person: %s %s, DOB Year: %d", p.first, p.last, p.dob_date.year)
+            if p.dob_date.year > 2000:
                 full = f"{p.first.strip().title()} {p.last.strip().title()}"
                 people.append(full)
         except Exception as e:
             logger.warning("Skipping entry due to parse error: %s", e)
+    logger.info("Found %d people born after 2000", len(people))
     return people
