@@ -223,6 +223,8 @@ coverage.xml
 # Kubernetes secrets (if generated locally)
 k8s-secrets.yaml
 *-secret.yaml
+k8s/secret.yaml
+k8s/configmap.yaml
 
 # Log files
 *.log
