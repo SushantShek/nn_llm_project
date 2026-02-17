@@ -34,6 +34,12 @@ def clean_json_string(s: str) -> str:
         return match.group(1).strip()
     return s
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Kubernetes liveness/readiness probes"""
+    logger.info("Health check: OK")
+    return {"status": "healthy", "message": "Person Finder API is running"}
+
 @app.get("/", response_class=HTMLResponse)
 async def read_index():
     with open("static/index.html", "r") as f:
