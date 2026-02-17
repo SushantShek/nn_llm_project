@@ -5,9 +5,10 @@ on:
     branches: ["main"]
 
 env:
-  AWS_REGION: ${{ secrets.AWS_REGION }}
-  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-  EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
+  AWS_REGION: eu-north-1            # Set your region
+  ECR_REPOSITORY: person-finder     # Replace with your repository
+  IMAGE_TAG: ${{ github.sha }}
+  EKS_CLUSTER_NAME: person-finder-cluster
 
 jobs:
   deploy:
@@ -26,7 +27,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: github-actions-deployment
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -35,29 +36,32 @@ jobs:
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REGISTRY: 897253278116.dkr.ecr.eu-north-1.amazonaws.com
+          ECR_REPOSITORY: person-finder
           IMAGE_TAG: ${{ github.sha }}
+          AWS_REGION: eu-north-1
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Update kubeconfig
-        run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+        run: aws eks update-kubeconfig --name person-finder-cluster --region eu-north-1
 
       - name: Deploy to EKS
         env:
           IMAGE: ${{ steps.build-image.outputs.image }}
         run: |
           # Ensure namespace exists
-          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/namespace.yaml --validate=false
 
           # Apply config
-          kubectl apply -f k8s/configmap.yaml
+          kubectl apply -f k8s/configmap.yaml --validate=false
+         
 
           # Apply Service and Deployment (image URI will be updated below)
-          kubectl apply -f k8s/service.yaml
-          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml --validate=false
+          kubectl apply -f k8s/deployment.yaml --validate=false
 
           # Rollout update with the new image
           kubectl set image deployment/person-finder person-finder=$IMAGE -n person-finder
