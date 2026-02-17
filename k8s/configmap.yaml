@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: nn-config
+  name: person-finder-config
   namespace: person-finder
 data:
   LOG_LEVEL: "INFO"

@@ -41,45 +41,9 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           AWS_REGION: eu-north-1
         run: |
-          # Debug output
-          echo "ECR_REGISTRY from login: '$ECR_REGISTRY'"
-          echo "AWS_REGION: '$AWS_REGION'"
-          echo "ECR_REPOSITORY: '$ECR_REPOSITORY'"
-          
-          # Check if ECR_REGISTRY is empty or contains placeholder
-          if [ -z "$ECR_REGISTRY" ] || [[ "$ECR_REGISTRY" == *"***"* ]]; then
-            echo "ECR_REGISTRY is empty or invalid, constructing from AWS account ID"
-            AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-            if [ -z "$AWS_REGION" ]; then
-              echo "Error: AWS_REGION is not set"
-              exit 1
-            fi
-            ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-          fi
-          
-          echo "Final ECR_REGISTRY: $ECR_REGISTRY"
-          
-          # Verify all required variables
-          if [ -z "$ECR_REPOSITORY" ]; then
-            echo "Error: ECR_REPOSITORY is not set"
-            exit 1
-          fi
-          
-          if [ -z "$IMAGE_TAG" ]; then
-            echo "Error: IMAGE_TAG is not set"
-            exit 1
-          fi
-          
-          # Build image tag
-          IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-          echo "Building image: $IMAGE"
-          
-          docker build -t "$IMAGE" .
-          docker push "$IMAGE"
-          
-          # Output image for next step
-          echo "image=${IMAGE}" >> $GITHUB_OUTPUT
-          echo "Built and pushed: $IMAGE"
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --name person-finder-cluster --region eu-north-1
@@ -91,9 +55,9 @@ jobs:
           # Ensure namespace exists
           kubectl apply -f k8s/namespace.yaml --validate=false
 
-          # Apply config/secrets
+          # Apply config
           kubectl apply -f k8s/configmap.yaml --validate=false
-          kubectl apply -f k8s/secret.yaml --validate=false
+         
 
           # Apply Service and Deployment (image URI will be updated below)
           kubectl apply -f k8s/service.yaml --validate=false
