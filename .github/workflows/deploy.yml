@@ -51,18 +51,58 @@ jobs:
       - name: Deploy to EKS
         env:
           IMAGE: ${{ steps.build-image.outputs.image }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
+          # Debug: Show IMAGE variable
+          echo "Deploying with IMAGE: $IMAGE"
+          
+          # Verify IMAGE is not empty
+          if [ -z "$IMAGE" ]; then
+            echo "Error: IMAGE is empty!"
+            exit 1
+          fi
+          
           # Ensure namespace exists
           kubectl apply -f k8s/namespace.yaml --validate=false
 
-          # Apply config
+          # Apply ServiceAccount and RBAC
+          kubectl apply -f k8s/serviceaccount.yaml --validate=false
+
+          # Create OpenAI secret from environment variable
+          if [ -n "$OPENAI_API_KEY" ]; then
+            echo "Creating OpenAI secret..."
+            kubectl create secret generic openai-secret \
+              --from-literal=API_KEY="$OPENAI_API_KEY" \
+              -n person-finder \
+              --dry-run=client -o yaml | kubectl apply -f -
+          else
+            echo "Warning: OPENAI_API_KEY is not set. Using placeholder secret."
+            kubectl apply -f k8s/secret.yaml --validate=false
+          fi
+
+          # Apply ConfigMap
           kubectl apply -f k8s/configmap.yaml --validate=false
-         
 
-          # Apply Service and Deployment (image URI will be updated below)
+          # Apply Service
           kubectl apply -f k8s/service.yaml --validate=false
-          kubectl apply -f k8s/deployment.yaml --validate=false
-
-          # Rollout update with the new image
-          kubectl set image deployment/person-finder person-finder=$IMAGE -n person-finder
-          kubectl rollout status deployment/person-finder -n person-finder
+          
+          # Substitute IMAGE_URI in deployment.yaml and apply
+          echo "Applying deployment with image: $IMAGE"
+          sed "s|IMAGE_URI|$IMAGE|g" k8s/deployment.yaml | kubectl apply -f - --validate=false
+          
+          # Wait a moment for the update to process
+          sleep 2
+          
+          # Debug: Check pod status before waiting
+          echo "Checking pod status..."
+          kubectl get pods -n person-finder
+          
+          # Wait for rollout with 5-minute timeout
+          if kubectl rollout status deployment/person-finder -n person-finder --timeout=5m; then
+            echo "Deployment successful!"
+          else
+            echo "Deployment timeout - checking pod events and logs..."
+            kubectl describe pod -n person-finder -l app=person-finder 2>/dev/null || true
+            kubectl logs -n person-finder -l app=person-finder --tail=50 2>/dev/null || true
+            exit 1
+          fi

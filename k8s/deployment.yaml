@@ -13,9 +13,13 @@ spec:
       labels:
         app: person-finder
     spec:
+      serviceAccountName: person-finder
+      imagePullSecrets:
+        - name: ecr-secret
       containers:
         - name: person-finder
-          image: <YOUR_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/person-finder:latest
+          image: IMAGE_URI  # This will be replaced by kubectl patch in the deployment workflow
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
           env:
@@ -33,14 +37,18 @@ spec:
             httpGet:
               path: /health
               port: 8000
-            initialDelaySeconds: 5
+            initialDelaySeconds: 30
             periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /health
               port: 8000
-            initialDelaySeconds: 5
-            periodSeconds: 10
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
           resources:
             limits:
               cpu: "500m"
