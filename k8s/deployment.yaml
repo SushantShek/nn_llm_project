@@ -27,7 +27,7 @@ spec:
             - name: LOG_LEVEL
               valueFrom:
                 configMapKeyRef:
-                  name: nn-config
+                  name: person-finder-config
                   key: LOG_LEVEL
           livenessProbe:
             httpGet:

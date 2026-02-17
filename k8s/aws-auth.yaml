@@ -6,6 +6,7 @@ metadata:
 data:
   mapRoles: |
     - rolearn: arn:aws:iam::897253278116:role/github-actions-role
+    - rolearn: arn:aws:iam::897253278116:role/GitHubOIDCRole
       username: github-actions
       groups:
         - system:masters
