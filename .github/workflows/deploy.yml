@@ -83,7 +83,6 @@ jobs:
 
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --name person-finder-cluster --region eu-north-1
-            kubectl cluster-info
 
       - name: Deploy to EKS
         env:
