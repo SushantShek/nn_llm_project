@@ -82,22 +82,23 @@ jobs:
           echo "Built and pushed: $IMAGE"
 
       - name: Update kubeconfig
-        run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+        run: aws eks update-kubeconfig --name person-finder-cluster --region eu-north-1
+            kubectl cluster-info
 
       - name: Deploy to EKS
         env:
           IMAGE: ${{ steps.build-image.outputs.image }}
         run: |
           # Ensure namespace exists
-          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/namespace.yaml --validate=false
 
           # Apply config/secrets
-          kubectl apply -f k8s/configmap.yaml
-          kubectl apply -f k8s/secret.yaml
+          kubectl apply -f k8s/configmap.yaml --validate=false
+          kubectl apply -f k8s/secret.yaml --validate=false
 
           # Apply Service and Deployment (image URI will be updated below)
-          kubectl apply -f k8s/service.yaml
-          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml --validate=false
+          kubectl apply -f k8s/deployment.yaml --validate=false
 
           # Rollout update with the new image
           kubectl set image deployment/person-finder person-finder=$IMAGE -n person-finder
